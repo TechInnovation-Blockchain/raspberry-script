@@ -62,7 +62,7 @@ def video_streamer():
 	def on_open(ws):
 		print('### connected ###')
 		#this thread runs forever, check for recveiver, start camera if true, and if camera isnt already going
-		def stream(*args):
+		async def stream(*args):
 			video_camera = None
 			while True:
 				global receiver_exists
@@ -80,20 +80,16 @@ def video_streamer():
 						video_camera = VideoCamera()
 
 				frame = video_camera.get_frame()
-
 					
 				if frame != None:
 					try:
-						ws.send(frame, websocket.ABNF.OPCODE_BINARY)
+						await ws.send(frame, websocket.ABNF.OPCODE_BINARY)
 					except Exception as e:
 						break
-			print('### closing stream thread ###')
-			#rebootStream()
+				if frame is None:
+					rebootStream()
 
-			
-		def rebootStream():
-			time.sleep(5)
-			thread.start_new_thread(stream, ())
+			print('### closing stream thread ###')
 			
 		#send ping every 2 seconds so that browsers can respond with pong if they are there
 		def ping(*args):
@@ -113,7 +109,8 @@ def video_streamer():
 					receiver_exists = False
 			print('### closing ping thread ###')
 
-		thread.start_new_thread(stream, ())
+		asyncio.get_event_loop().run_until_complete(stream())
+		asyncio.get_event_loop().run_forever()
 		thread.start_new_thread(ping, ())
     #main while loop of this thread. Opens and intializes websocket
 	def videoSocket():
@@ -134,6 +131,15 @@ def video_streamer():
 	print('connecting to video socket.....')
 	videoSocket()
 
+def rebootStream():
+	new_thread = threading.Thread(target=video_streamer)
+
+	if new_thread.is_alive():
+		new_thread.join()
+		time.sleep(2)
+		new_thread.start()
+		return
+
 if __name__== "__main__":
 	import os #for power circuit
 	import time
@@ -142,6 +148,7 @@ if __name__== "__main__":
 	import threading
 	import subprocess
 	import threshVals
+	import asyncio
 	from random import randint
 	from datetime import datetime
 	try:
