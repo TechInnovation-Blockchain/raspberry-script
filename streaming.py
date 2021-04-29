@@ -15,7 +15,6 @@ def video_streamer():
 			except:
 				self.cap = cv2.VideoCapture(1)
 				
-
 		def __del__(self):
 			self.cap.release()
 
@@ -62,7 +61,7 @@ def video_streamer():
 	def on_open(ws):
 		print('### connected ###')
 		#this thread runs forever, check for recveiver, start camera if true, and if camera isnt already going
-		async def stream(*args):
+		def stream(*args):
 			video_camera = None
 			while True:
 				global receiver_exists
@@ -83,7 +82,7 @@ def video_streamer():
 					
 				if frame != None:
 					try:
-						await ws.send(frame, websocket.ABNF.OPCODE_BINARY)
+						ws.send(frame, websocket.ABNF.OPCODE_BINARY)
 					except Exception as e:
 						break
 				if frame is None:
@@ -109,9 +108,9 @@ def video_streamer():
 					receiver_exists = False
 			print('### closing ping thread ###')
 
-		asyncio.get_event_loop().run_until_complete(stream())
-		asyncio.get_event_loop().run_forever()
+		thread.start_new_thread(stream, ())
 		thread.start_new_thread(ping, ())
+		
     #main while loop of this thread. Opens and intializes websocket
 	def videoSocket():
 		while True:
